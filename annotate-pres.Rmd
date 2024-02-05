@@ -38,7 +38,7 @@ p +
 
 ## Theming your annotations
 
-You can set the font, text size, color, and other theming properties within annotate(). Keep in mind that your visualization will be more effective if you use a consitent type system (simpler is often better!).
+You can set the font, text size, color, and other theming properties within annotate(). Keep in mind that your visualization will be more effective if you use a consistent type system (simpler is often better!).
 
 ```{r}
 p +
@@ -201,3 +201,4 @@ ggplot(mtcars, aes(x = disp, y = mpg)) +
 
 - Most of the examples are from The R Graphics Cookbook (https://r-graphics.org). It has specific examples of many useful ggplot-related tricks.
 - The ggrepel and ggforce examples came from Draw Anything with ggplot2 (https://github.com/thomasp85/ggplot2_workshop).
+- I didn't incorporate this one (https://ggplot2-book.org/annotations), but it has some great examples beyond what we covered today.
