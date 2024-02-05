@@ -1,0 +1,203 @@
+---
+title: "annotate-pres"
+author: "Joddy"
+date: "2024-02-04"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Annotation techniques in R
+
+When I worked as a data analyst for a lab, I learned to use ggplot to create visualizations for publications. My job was to focus on the models and selection of data for presentation and choosing an appropriate chart type. Once the viz was saved, the team (usually me) would add annotations later either in Photoshop, or in PowerPoint.
+
+I'm not a graphic designer, but I learned how to add text, lines, and shapes to plots to highlight certain sections. This worked, but I would have to recreate the annotations every time the plot changed.
+
+## Annotation with ggplot
+Later, when delving into ggplot for a workshop, I learned about annotations -- most of the painstaking work in Photoshop could have been accomplished directly in ggplot! The best part is being able to immediately reproduce the annotations if the plot has to be re-generated.
+
+Today, we'll go over some of the common uses of annotations in ggplot. We will use geom_text/geom_label from ggplot2 for the annotations, and the ggrepel and ggforce packages to control text label location and create annotation marks, respectively.
+
+The presentation is hosted on github at: https://github.com/joddymarchesoni/ggplot_annotate.
+
+## Custom annotations using annotate()
+
+Using annotate(), we can add descriptive text at any location using (x, y) coordinates.
+
+```{r}
+library(ggplot2)
+p <- ggplot(faithful, aes(x = eruptions, y = waiting)) +
+  geom_point()
+
+p +
+  annotate("text", x = 3, y = 48, label = "Group 1") +
+  annotate("text", x = 4.5, y = 66, label = "Group 2")
+```
+
+## Theming your annotations
+
+You can set the font, text size, color, and other theming properties within annotate(). Keep in mind that your visualization will be more effective if you use a consitent type system (simpler is often better!).
+
+```{r}
+p +
+  annotate("text", x = 3, y = 48, label = "Group 1",
+           family = "serif", fontface = "italic", colour = "darkred", size = 3) +
+  annotate("text", x = 4.5, y = 66, label = "Group 2",
+           family = "serif", fontface = "italic", colour = "darkred", size = 3)
+```
+
+## Annotating from your data using geom_text()
+Text is a huge part of storytelling with your visualization. ggplot2 includes geom_text(), which lets you map your descriptive text directly into the plot. geom_text() uses an aesthetic mapping to create labels from columns that will be added as a geom layer. There are some issues with the default behavior, as we will see in the example.
+
+## Overlapping labels
+Standard geom_text will often result in overlapping labels:
+```{r}
+ggplot(mtcars, aes(x = disp, y = mpg)) + 
+  geom_point() + 
+  geom_text(aes(label = row.names(mtcars)))
+```
+
+## ggrepel to control label position
+ggrepel takes care of that:
+
+```{r}
+library(ggrepel)
+ggplot(mtcars, aes(x = disp, y = mpg)) + 
+  geom_point() + 
+  geom_text_repel(aes(label = row.names(mtcars)))
+```
+## geom_label_repel
+
+To get rectangles around your text, use geom_label_repel() instead of geom_text_repel(). Note that this may create more overlaps, which will drop labels that do not have enough space to be drawn.
+
+```{r}
+library(ggrepel)
+ggplot(mtcars, aes(x = disp, y = mpg)) + 
+  geom_point() + 
+  geom_label_repel(aes(label = row.names(mtcars)))
+```
+
+You can add nudge_x and/or nudge_y to shift the labels up with a line leading to the point to reduce the overlaps, but this may make the plot harder to understand. You may have to tinker with these settings to get all the labels to show correctly.
+
+```{r}
+library(ggrepel)
+ggplot(mtcars, aes(x = disp, y = mpg)) + 
+  geom_point() + 
+  geom_label_repel(aes(label = row.names(mtcars)), nudge_x=1, nudge_y=10)
+```
+## Set the repel direction
+
+To ensure that the labels in the plot only repel in the vertical direction, use nudge_y and direction="y".
+
+```{r}
+mtcars$label <- ""
+mtcars$label[1:10] <- rownames(mtcars)[1:10]
+ggplot(mtcars, aes(x = disp, y = mpg)) + 
+  geom_point() + 
+  geom_text_repel(aes(label = label), direction="y", nudge_y=10)
+```
+
+## Using mathematical notation in your labels
+
+You can use annotate("text", parse = TRUE) to create mathematical notation (similar to latex). See the plotmath package for more.
+
+```{r}
+# A normal curve
+p <- ggplot(data.frame(x = c(-3,3)), aes(x = x)) +
+  stat_function(fun = dnorm)
+
+p +
+  annotate("text", x = 2, y = 0.3, parse = TRUE,
+           label = "frac(1, sqrt(2 * pi)) * e ^ {-x^2 / 2}") # Using plotmath syntax
+```
+
+## Line annotations
+
+You probably already know how to use abline, hline, and vline geoms to add lines manually to a plot. You can also use lines to summarize the means or other statistics for group comparisons.
+
+Here we’ll take the average height for males and females and store it in a data frame, hw_means. Then we’ll draw a horizontal line for each, and set the linetype and size.
+
+```{r}
+library(gcookbook)  # Load gcookbook for the heightweight data set
+library(dplyr)
+
+hw_plot <- ggplot(heightweight, aes(x = ageYear, y = heightIn, colour = sex)) +
+  geom_point()
+
+hw_means <- heightweight %>%
+  group_by(sex) %>%
+  summarise(heightIn = mean(heightIn))
+
+hw_means
+#> # A tibble: 2 × 2
+#>   sex   heightIn
+#>   <fct>    <dbl>
+#> 1 f         60.5
+#> 2 m         62.1
+
+hw_plot +
+  geom_hline(
+    data = hw_means,
+    aes(yintercept = heightIn, colour = sex),
+    linetype = "dashed",
+    linewidth = 1
+  )
+```
+
+## Adding a shaded rectangle to highlight a section
+
+This is effective for time trend plots, and you'll see this a lot in publications where a specific time range is part of the story.
+```{r}
+p <- ggplot(filter(climate, Source == "Berkeley"), aes(x = Year, y = Anomaly10y)) +
+  geom_line()
+
+p +
+  annotate("rect", xmin = 1950, xmax = 1980, ymin = -1, ymax = 1,
+           alpha = .1,fill = "blue")
+```
+
+
+## ggforce for annotation marks
+If you want to highlight certain parts of your data and describe it, the 
+`geom_mark_*()` family of geoms from the ggforce package have your back!
+
+```{r}
+library(ggforce)
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_ellipse(aes(filter = gear == 4,
+                        label = '4 gear cars',
+                        description = 'Cars with fewer gears tend to both have higher yield and lower displacement'))
+```
+
+## ggforce mark geoms
+ggforce comes with 4 different types of mark geoms: ellipse, circle, rect, and hull.
+
+```{r}
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_ellipse(aes(filter = gear == 4,
+                        label = '4 gear cars'))
+
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_circle(aes(filter = gear == 4,
+                        label = '4 gear cars'))
+
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_rect(aes(filter = gear == 4,
+                        label = '4 gear cars'))
+
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() + 
+  geom_mark_hull(aes(filter = gear == 4,
+                        label = '4 gear cars'))
+```
+
+## Sources
+
+- Most of the examples are from The R Graphics Cookbook (https://r-graphics.org). It has specific examples of many useful ggplot-related tricks.
+- The ggrepel and ggforce examples came from Draw Anything with ggplot2 (https://github.com/thomasp85/ggplot2_workshop).
