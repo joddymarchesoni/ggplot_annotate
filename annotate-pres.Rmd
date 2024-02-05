@@ -1,12 +1,12 @@
 ---
-title: "annotate-pres"
-author: "Joddy"
-date: "2024-02-04"
-output: ioslides_presentation
+title: "Annotating for ggplot2 Visualizations"
+author: "Joddy Marchesoni"
+date: "2024-02-05"
+output:
+  slidy_presentation: default
 ---
-
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
 ## Annotation techniques in R
@@ -129,13 +129,6 @@ hw_plot <- ggplot(heightweight, aes(x = ageYear, y = heightIn, colour = sex)) +
 hw_means <- heightweight %>%
   group_by(sex) %>%
   summarise(heightIn = mean(heightIn))
-
-hw_means
-#> # A tibble: 2 × 2
-#>   sex   heightIn
-#>   <fct>    <dbl>
-#> 1 f         60.5
-#> 2 m         62.1
 
 hw_plot +
   geom_hline(
